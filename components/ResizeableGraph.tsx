@@ -8,6 +8,8 @@ interface Props {
 }
 
 export function ResizeableGraph({ data, highlighted, min }: Props) {
+  console.log(min);
+
   const CustomTooltip = ({
     payload,
   }: {
@@ -16,7 +18,11 @@ export function ResizeableGraph({ data, highlighted, min }: Props) {
     if (payload && payload.length > 0) {
       return (
         <div>
-          <p className="text-2xl">{payload[0].payload.mv.toFixed(0)}</p>
+          <p className="text-2xl">
+            {payload[0].payload.mv < 100
+              ? payload[0].payload.mv.toFixed(2)
+              : payload[0].payload.mv.toFixed()}
+          </p>
           <p>{new Date(payload[0].payload.ts * 1000).toLocaleString()}</p>
         </div>
       );

@@ -2,6 +2,10 @@
 
 A web application that allows users to track and visualize the historical market value of any card. Simple and minimal, you can view market value data, filter by seasons, filter dates, and explore trends over time.
 
+## How are the market values calculated? They don't match NS!!!!
+
+The non-transfer trades the card has participated in are iterated through, skipping the first 15 (this assumes that MV is heavily considered from the last 15 trades).
+
 ## Features
 
 - **Historical Market Value Data:** Retrieve and display historical market value data for a particular card in the NationStates Trading Card Game.

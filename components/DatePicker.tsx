@@ -1,33 +1,37 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { addDays, format } from "date-fns"
-import { Calendar as CalendarIcon } from "lucide-react"
-import { DateRange } from "react-day-picker"
+import { addDays, format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { MarketData } from "@/lib/types/market_data"
+} from "@/components/ui/popover";
+import { MarketData } from "@/lib/types/market_data";
+import { HTMLAttributes, useEffect, useState } from "react";
 
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
-  upDate: (d: Array<Date>) => void
-  data: Array<MarketData>
+interface Props extends HTMLAttributes<HTMLDivElement> {
+  upDate: (d: Array<Date>) => void;
+  data: Array<MarketData>;
 }
 
-export function DatePickerWithRange({
-  className, upDate, data
-}: Props) {
-  const [date, setDate] = React.useState<DateRange | undefined>({
+export function DatePickerWithRange({ className, upDate, data }: Props) {
+  const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(data[0].ts * 1000),
     to: addDays(new Date(), 0),
-  })
+  });
 
+  useEffect(() => {
+    setDate({
+      from: new Date(data[0].ts * 1000),
+      to: addDays(new Date(), 0),
+    });
+  }, [data]);
 
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
     if (selectedDate) {
@@ -65,16 +69,23 @@ export function DatePickerWithRange({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent
+          className="w-auto p-0 m-auto flex flex-col items-center"
+          align="start"
+        >
           <Calendar
             initialFocus
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={handleDateSelect}
+            onSelect={setDate}
+            numberOfMonths={1}
           />
+          <Button className="m-auto" onClick={() => handleDateSelect(date)}>
+            Update Range
+          </Button>
         </PopoverContent>
       </Popover>
     </div>
-  )
+  );
 }
