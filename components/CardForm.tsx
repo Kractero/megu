@@ -15,7 +15,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { sleep } from "@/lib/sleep";
 import { parseXML } from "@/lib/parseXML";
 import { SeasonSelector } from "./SeasonSelector";
@@ -54,13 +54,13 @@ export function CardForm() {
     },
   });
 
-  // function calculateMarketValue(trades: Array<Trade>, opt?: any) {
-  //   const sumPrices = trades.reduce(
-  //     (sum, trade) => sum + parseFloat(trade.PRICE),
-  //     0
-  //   );
-  //   return sumPrices / trades.length;
-  // }
+  function calculateMarketValue(trades: Array<Trade>) {
+    const sumPrices = trades.reduce(
+      (sum, trade) => sum + parseFloat(trade.PRICE),
+      0
+    );
+    return sumPrices / trades.length;
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     let nation = values.cardName;
@@ -88,31 +88,25 @@ export function CardForm() {
         );
         if (xml.CARD) {
           const trades = xml.CARD.TRADES.TRADE.filter((trade) => trade.PRICE);
-          const marketValueAtEachTrade = trades
-            .map((trade, i, trades) => {
-              const startIndex = Math.max(0, i - 14);
+          const marketValueAtEachTrade: Array<MarketData> = trades.map(
+            (trade, i, trades) => {
+              const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
               const last15Trades = trades.slice(startIndex, i + 1);
 
-              const marketValue =
-                last15Trades.reduce(
-                  (sum, trade) => sum + parseFloat(trade.PRICE),
-                  0
-                ) / last15Trades.length;
+              const marketValue = calculateMarketValue(last15Trades);
 
-              if (i > 14) {
-                return {
-                  mv: marketValue,
-                  ts: trades[i].TIMESTAMP,
-                };
-              }
-            })
-            .filter((i) => i);
+              return {
+                mv: marketValue,
+                ts: last15Trades[0].TIMESTAMP,
+              };
+            }
+          );
           bases.push([
             xml.CARD.MARKET_VALUE,
             new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
             v,
           ]);
-          valuees.push((marketValueAtEachTrade as Array<MarketData>).reverse());
+          valuees.push(marketValueAtEachTrade.reverse());
         } else {
           setError(`Nation does have a card for season ${season}.`);
         }
@@ -125,50 +119,25 @@ export function CardForm() {
       );
       if (xml.CARD) {
         const trades = xml.CARD.TRADES.TRADE.filter((trade) => trade.PRICE);
-        // const marketValueAtEachTrade: Array<MarketData> = trades
-        //   .map((trade, i, trades) => {
-        //     const sumPrices = trades
-        //       .slice(0, i + 1)
-        //       .reduce((sum, t) => sum + parseFloat(t.PRICE), 0);
-        //     const marketValue = sumPrices / (i + 1); // Divide by the number of trades up to the current index
+        const marketValueAtEachTrade = trades.map((trade, i, trades) => {
+          const startIndex = Math.max(0, i - 14);
+          const last15Trades = trades.slice(startIndex, i + 1);
 
-        //     if (i > 14) {
-        //       return {
-        //         mv: marketValue,
-        //         ts: trades[i].TIMESTAMP,
-        //       };
-        //     }
-        //   })
-        //   .filter((i) => i);
-        const marketValueAtEachTrade = trades
-          .map((trade, i, trades) => {
-            const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
-            const last15Trades = trades.slice(startIndex, i + 1);
+          const marketValue = calculateMarketValue(last15Trades);
 
-            const marketValue =
-              last15Trades.reduce(
-                (sum, trade) => sum + parseFloat(trade.PRICE),
-                0
-              ) / last15Trades.length;
-
-            if (i > 14) {
-              return {
-                mv: marketValue,
-                ts: trades[i].TIMESTAMP,
-              };
-            }
-          })
-          .filter((i) => i);
-        valuees = [(marketValueAtEachTrade as Array<MarketData>).reverse()];
+          return {
+            mv: marketValue,
+            ts: last15Trades[last15Trades.length - 1].TIMESTAMP,
+          };
+        });
+        valuees = [marketValueAtEachTrade.reverse()];
         bases.push([
           xml.CARD.MARKET_VALUE,
           new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
           season,
         ]);
       } else {
-        setError(
-          `Nation does have a card for season ${season} or has CTE, find the DBID instead.`
-        );
+        setError(`Nation does have a card for season ${season}.`);
       }
     }
     setHighlighted(bases);
