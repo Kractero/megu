@@ -116,6 +116,7 @@ export function CardForm() {
       try {
         let xmla = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?nation=${nation}&q=dbid`, "Kractero")
         nation = xmla.NATION.DBID
+        await sleep(700)
       } catch (err) {
         console.log(err)
       }
@@ -124,19 +125,22 @@ export function CardForm() {
     if (season === "All") {
       for (let v = 1; v <= 3; v++) {
         const xml = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${v};limit=1000`, "Kractero")
-        const trades = xml.CARD.TRADES.TRADE.filter(trade => trade.PRICE)
-        const marketValueAtEachTrade = trades.map((trade, i, trades) => {
-          const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
-          const last15Trades = trades.slice(startIndex, i + 1);
+        if (xml.CARD) {
+          const trades = xml.CARD.TRADES.TRADE.filter(trade => trade.PRICE)
+          const marketValueAtEachTrade = trades.map((trade, i, trades) => {
+            const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
+            const last15Trades = trades.slice(startIndex, i + 1);
 
-          const marketValue = calculateMarketValue(last15Trades);
+            const marketValue = calculateMarketValue(last15Trades);
 
-          return {
-            "mv": marketValue,
-            "ts": last15Trades[0].TIMESTAMP
-          };
-        });
-        valuees.push(marketValueAtEachTrade.reverse())
+            return {
+              "mv": marketValue,
+              "ts": last15Trades[0].TIMESTAMP
+            };
+          });
+          valuees.push(marketValueAtEachTrade.reverse())
+        }
+        await sleep(700)
       }
     } else {
       const xml = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${season};limit=1000`, "Kractero")
@@ -204,7 +208,7 @@ export function CardForm() {
       {data.length > 1 ?
     <Carousel className="w-full">
     <CarouselContent>
-      {Array.from({ length: 3 }).map((_, index) => (
+      {Array.from({ length: data.length }).map((_, index) => (
         <CarouselItem key={index}>
           <ResponsiveContainer minWidth={320} minHeight={320} width="100%" height={500}>
         <LineChart
