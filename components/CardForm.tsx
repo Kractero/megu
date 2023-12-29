@@ -69,6 +69,7 @@ export function CardForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setHighlighted([]);
     setData([]);
+    setError("");
     let nation = values.cardName;
     let season = values.season;
     let dbid = "";
