@@ -1,5 +1,4 @@
 import { CardForm } from '@/components/CardForm'
-import Image from 'next/image'
 
 export default function Home() {
   return (
