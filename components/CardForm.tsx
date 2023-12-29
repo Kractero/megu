@@ -15,7 +15,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { sleep } from "@/lib/sleep";
 import { parseXML } from "@/lib/parseXML";
 import { SeasonSelector } from "./SeasonSelector";
@@ -62,84 +62,61 @@ export function CardForm() {
     return sumPrices / trades.length;
   }
 
+  // useEffect(() => {
+  //   onSubmit(form.getValues());
+  // }, []);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setHighlighted([]);
+    setData([]);
     let nation = values.cardName;
     let season = values.season;
     let dbid = "";
     pushHistory(`?nation=${nation}&season=${season}`);
     try {
-      let xmla = await fetch(`https://api.sideroca.com/cards?name==${nation}`);
+      let xmla = await fetch(`https://api.sideroca.com/cards/${nation}`);
       let json = await xmla.json();
-      if (!json.cards[0]) {
-        setError("Nation does not have a card!");
-        return;
+      if (!json.card) {
+        throw new Error("Nation does not have a card!");
       }
-      dbid = json.cards[0].id;
+      dbid = json.card.id;
       await sleep(700);
-    } catch (err: any) {
-      setError(err.message);
-      return;
-    }
-    let valuees: Array<Array<MarketData>> = [];
-    let bases: Array<any> = [];
-    if (season === "All") {
-      for (let v = 1; v <= 3; v++) {
-        const xml: TradeData = await parseXML(
-          `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${dbid};season=${v};limit=1000`,
-          "Kractero"
-        );
-        if (xml.CARD) {
-          const trades = xml.CARD.TRADES.TRADE.filter((trade) => trade.PRICE);
-          const marketValueAtEachTrade: Array<MarketData> = trades.map(
-            (trade, i, trades) => {
-              const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
-              const last15Trades = trades.slice(startIndex, i + 1);
-
-              const marketValue = calculateMarketValue(last15Trades);
-
-              return {
-                mv: marketValue,
-                ts: last15Trades[0].TIMESTAMP,
-              };
-            }
+      let valuees: Array<Array<MarketData>> = [];
+      let bases: Array<any> = [];
+      if (season === "All") {
+        for (let v = 1; v <= 3; v++) {
+          const xml: TradeData = await parseXML(
+            `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${dbid};season=${v};limit=1000`,
+            "Kractero"
           );
-          bases.push([
-            xml.CARD.MARKET_VALUE,
-            new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
-            v,
-            nation,
-          ]);
-          valuees.push(marketValueAtEachTrade.reverse());
+          if (xml.CARD) {
+            const trades = xml.CARD.TRADES.TRADE.filter((trade) => trade.PRICE);
+            const marketValueAtEachTrade: Array<MarketData> = trades.map(
+              (trade, i, trades) => {
+                const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
+                const last15Trades = trades.slice(startIndex, i + 1);
+
+                const marketValue = calculateMarketValue(last15Trades);
+
+                return {
+                  mv: marketValue,
+                  ts: last15Trades[0].TIMESTAMP,
+                };
+              }
+            );
+            bases.push([
+              xml.CARD.MARKET_VALUE,
+              new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
+              v,
+              nation,
+            ]);
+            valuees.push(marketValueAtEachTrade.reverse());
+          }
+          await sleep(700);
         }
-        await sleep(700);
-      }
-    } else {
-      const xml: TradeData = await parseXML(
-        `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${dbid};season=${season};limit=1000`,
-        "Kractero"
-      );
-      if (xml.CARD) {
-        const trades = xml.CARD.TRADES.TRADE.filter((trade) => trade.PRICE);
-        const marketValueAtEachTrade = trades.map((trade, i, trades) => {
-          const startIndex = Math.max(0, i - 14);
-          const last15Trades = trades.slice(startIndex, i + 1);
-
-          const marketValue = calculateMarketValue(last15Trades);
-
-          return {
-            mv: marketValue,
-            ts: last15Trades[last15Trades.length - 1].TIMESTAMP,
-          };
-        });
-        valuees = [marketValueAtEachTrade.reverse()];
-        bases.push([
-          xml.CARD.MARKET_VALUE,
-          new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
-          season,
-        ]);
       } else {
         const xml: TradeData = await parseXML(
-          `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${season};limit=1000`,
+          `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${dbid};season=${season};limit=1000`,
           "Kractero"
         );
         if (xml.CARD) {
@@ -162,12 +139,14 @@ export function CardForm() {
             season,
           ]);
         } else {
-          setError(`Nation does have a card for season ${season}.`);
+          throw new Error(`Nation does have a card for season ${season}.`);
         }
       }
+      setHighlighted(bases);
+      setData(valuees);
+    } catch (err: any) {
+      setError(err.message);
     }
-    setHighlighted(bases);
-    setData(valuees);
   }
   return (
     <>
