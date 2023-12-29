@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Link } from "lucide-react"
 import { XMLParser } from 'fast-xml-parser';
 import { useState } from "react"
-import { LineChart, Line } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, Tooltip, Dot } from 'recharts';
 
 const formSchema = z.object({
   season: z.union( [
@@ -76,6 +76,7 @@ export async function parseXML(url: string, userAgent: string, password?: string
 
 export function CardForm() {
   const [data, setData] = useState<any>()
+  const [highlighted, setHighlighted] = useState<any>([])
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -83,6 +84,15 @@ export function CardForm() {
       cardName: "Testlandia",
     },
   })
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (payload && payload.length > 0) {
+      return (
+        <p>{payload[0].payload.mv} on {payload[0].payload.ts}</p>
+      )
+    }
+    return <p>{highlighted[0]} on {highlighted[1]}</p>;
+  };
 
   function calculateMarketValue(trades) {
     const sumPrices = trades.reduce((sum, trade) => sum + parseFloat(trade.PRICE), 0);
@@ -115,8 +125,11 @@ export function CardForm() {
     });
     console.log(marketValueAtEachTrade)
     setData(marketValueAtEachTrade.reverse())
+    setHighlighted([xml.CARD.MARKET_VALUE, trades[0].TIMESTAMP])
   }
-
+  const customTooltipPosition = (coordinates, data, dataKey) => {
+    return { x: 0, y: 0 }; // Always position the tooltip at the top left
+  };
   return (
     <>
       <Form {...form}>
@@ -158,9 +171,29 @@ export function CardForm() {
         <Button type="submit">Submit</Button>
       </form>
     </Form>
-    <LineChart id="Values" width={400} height={400} data={data}>
-    <Line type="monotone" dataKey={"mv"} stroke="#8884d8" />
-  </LineChart>
+      {data && <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80"}>
+        <p>Current MV: {highlighted[0]}</p>
+        <p>Last Trade: {highlighted[1]}</p>
+      <ResponsiveContainer minWidth={320} minHeight={320} width="100%" height={500}>
+        <LineChart
+          width={500}
+          height={300}
+          data={data}
+          margin={{
+            top: 5,
+            right: 30,
+            left: 20,
+            bottom: 5,
+          }}
+        >
+          <Line type="monotone" dataKey="mv" stroke="#8884d8" />
+           <Tooltip   wrapperStyle={{
+    visibility: 'visible',
+    width: '100%',
+  }} position={{x:0, y:0}} content={<CustomTooltip />} />
+        </LineChart>
+      </ResponsiveContainer>
+      </div>}
     </>
   )
 
