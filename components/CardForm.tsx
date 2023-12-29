@@ -65,25 +65,27 @@ export function CardForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     let nation = values.cardName;
     let season = values.season;
+    let dbid = "";
     pushHistory(`?nation=${nation}&season=${season}`);
-    if (isNaN(Number(nation))) {
-      try {
-        let xmla = await parseXML(
-          `https://www.nationstates.net/cgi-bin/api.cgi?nation=${nation}&q=dbid`,
-          "Kractero"
-        );
-        nation = xmla.NATION.DBID;
-        await sleep(700);
-      } catch (err) {
-        setError("Nation does not exist.");
+    try {
+      let xmla = await fetch(`https://api.sideroca.com/cards?name==${nation}`);
+      let json = await xmla.json();
+      if (!json.cards[0]) {
+        setError("Nation does not have a card!");
+        return;
       }
+      dbid = json.cards[0].id;
+      await sleep(700);
+    } catch (err: any) {
+      setError(err.message);
+      return;
     }
     let valuees: Array<Array<MarketData>> = [];
     let bases: Array<any> = [];
     if (season === "All") {
       for (let v = 1; v <= 3; v++) {
         const xml: TradeData = await parseXML(
-          `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${v};limit=1000`,
+          `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${dbid};season=${v};limit=1000`,
           "Kractero"
         );
         if (xml.CARD) {
@@ -105,16 +107,15 @@ export function CardForm() {
             xml.CARD.MARKET_VALUE,
             new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
             v,
+            nation,
           ]);
           valuees.push(marketValueAtEachTrade.reverse());
-        } else {
-          setError(`Nation does have a card for season ${season}.`);
         }
         await sleep(700);
       }
     } else {
       const xml: TradeData = await parseXML(
-        `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${season};limit=1000`,
+        `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${dbid};season=${season};limit=1000`,
         "Kractero"
       );
       if (xml.CARD) {
@@ -137,7 +138,32 @@ export function CardForm() {
           season,
         ]);
       } else {
-        setError(`Nation does have a card for season ${season}.`);
+        const xml: TradeData = await parseXML(
+          `https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${season};limit=1000`,
+          "Kractero"
+        );
+        if (xml.CARD) {
+          const trades = xml.CARD.TRADES.TRADE.filter((trade) => trade.PRICE);
+          const marketValueAtEachTrade = trades.map((trade, i, trades) => {
+            const startIndex = Math.max(0, i - 14);
+            const last15Trades = trades.slice(startIndex, i + 1);
+
+            const marketValue = calculateMarketValue(last15Trades);
+
+            return {
+              mv: marketValue,
+              ts: last15Trades[last15Trades.length - 1].TIMESTAMP,
+            };
+          });
+          valuees = [marketValueAtEachTrade.reverse()];
+          bases.push([
+            xml.CARD.MARKET_VALUE,
+            new Date(trades[0].TIMESTAMP * 1000).toLocaleString(),
+            season,
+          ]);
+        } else {
+          setError(`Nation does have a card for season ${season}.`);
+        }
       }
     }
     setHighlighted(bases);
@@ -179,7 +205,11 @@ export function CardForm() {
         </form>
       </Form>
       {data && data.length > 0 ? (
-        <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8"}>
+        <div
+          className={
+            "min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8 flex flex-col items-center "
+          }
+        >
           {data.length > 1 ? (
             <ChartCarousel
               min={min}
@@ -189,8 +219,8 @@ export function CardForm() {
             />
           ) : (
             <div className="flex flex-col items-center gap-2 md:gap-4">
-              <h2 className="text-xl md:text-3xl">
-                Season {highlighted[0][2]}
+              <h2 className="text-xl md:text-3xl text-center">
+                Season {highlighted[0][2]} - {highlighted[0][3]}
               </h2>
               <DatePickerWithRange data={data[0]} upDate={updateMin} />
               <ResizeableGraph

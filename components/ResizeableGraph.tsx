@@ -8,8 +8,6 @@ interface Props {
 }
 
 export function ResizeableGraph({ data, highlighted, min }: Props) {
-  console.log(min);
-
   const CustomTooltip = ({
     payload,
   }: {
@@ -56,8 +54,8 @@ export function ResizeableGraph({ data, highlighted, min }: Props) {
         }
         margin={{
           top: 65,
-          right: 20,
-          left: 20,
+          right: 45,
+          left: 45,
         }}
       >
         <Line type="monotone" dataKey="mv" stroke="#8884d8" />
