@@ -4,15 +4,26 @@ import { MarketData } from "@/lib/types/market_data";
 interface Props {
   data: Array<MarketData>
   highlighted: Array<[string, string]>
+  min: Array<Date>
 }
 
-export function ResizeableGraph({ data, highlighted }: Props) {
+export function ResizeableGraph({ data, highlighted, min }: Props) {
 
   const CustomTooltip = ({ payload }: { payload: Array<{[key: string]: any}>}) => {
     if (payload && payload.length > 0) {
-      return `${payload[0].payload.mv} on ${new Date(payload[0].payload.ts * 1000).toLocaleString()}`
+      return (
+        <div>
+          <p className="text-2xl">{payload[0].payload.mv.toFixed(0)}</p>
+          <p>{new Date(payload[0].payload.ts * 1000).toLocaleString()}</p>
+        </div>
+      )
     }
-    return `${highlighted[0]} on ${highlighted[1]}`;
+    return (
+      <div>
+        <p className="text-2xl">{highlighted[0]}</p>
+        <p>{highlighted[1]}</p>
+      </div>
+    )
   };
 
   return (
@@ -25,7 +36,7 @@ export function ResizeableGraph({ data, highlighted }: Props) {
       <LineChart
         width={500}
         height={300}
-        data={data}
+        data={min.length > 0 ? data.filter(date => (date.ts > (min[0].getTime()/1000)) && (date.ts < (min[1].getTime()/1000))) : data}
         margin={{
           top: 5,
           right: 30,
@@ -38,9 +49,11 @@ export function ResizeableGraph({ data, highlighted }: Props) {
           wrapperStyle={{
             visibility: "visible",
             width: "100%",
+            textAlign: "center",
+            position: "absolute"
           }}
           position={{ x: 0, y: 0 }}
-          content={CustomTooltip as any}
+          content={<CustomTooltip payload={[]} />}
         />
       </LineChart>
     </ResponsiveContainer>

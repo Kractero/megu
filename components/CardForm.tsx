@@ -23,6 +23,7 @@ import { MarketData } from "@/lib/types/market_data"
 import { ChartCarousel } from "./ChartCarousel"
 import { ResizeableGraph } from "./ResizeableGraph"
 import { Trade, TradeData } from "@/lib/types/trades_data"
+import { DatePickerWithRange } from "./DatePicker"
 
 const formSchema = z.object({
   season: z.union( [
@@ -37,6 +38,8 @@ const formSchema = z.object({
 export function CardForm() {
   const [data, setData] = useState<Array<Array<MarketData>>>()
   const [highlighted, setHighlighted] = useState<any>([])
+  const [min, setMin] = useState<Array<Date>>([])
+  const updateMin = (d: Array<Date>) => setMin(d)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -63,6 +66,7 @@ export function CardForm() {
       }
     }
     let valuees: Array<Array<MarketData>> = []
+    let bases: Array<any> = []
     if (season === "All") {
       for (let v = 1; v <= 3; v++) {
         const xml: TradeData = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${v};limit=1000`, "Kractero")
@@ -80,6 +84,7 @@ export function CardForm() {
             };
           });
           marketValueAtEachTrade.push()
+          bases.push([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString()])
           valuees.push(marketValueAtEachTrade.reverse())
         }
         await sleep(700)
@@ -100,21 +105,22 @@ export function CardForm() {
           };
         });
         valuees = [marketValueAtEachTrade.reverse()]
-        setHighlighted([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString()])
+        bases.push([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString()])
       }
     }
+    setHighlighted(bases)
     setData(valuees)
   }
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col md:flex-row items-center gap-4 mt-24">
         <SeasonSelector form={form} />
         <FormField
           control={form.control}
           name="cardName"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="my-4">
               <FormControl>
                 <Input placeholder="Testlandia" {...field} />
               </FormControl>
@@ -125,12 +131,15 @@ export function CardForm() {
         <Button type="submit">Submit</Button>
       </form>
     </Form>
-      {data && <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80"}>
-        <p>Current MV: {highlighted[0]}</p>
-        <p>Last Trade: {highlighted[1]}</p>
+      {data && <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8"}>
       {data.length > 1 ?
-        <ChartCarousel data={data} highlighted={highlighted} />
-      : <ResizeableGraph data={data[0]} highlighted={highlighted} />}
+        <ChartCarousel min={min} data={data} upDate={updateMin} highlighted={highlighted} />
+      :
+        <div className="flex flex-col items-center gap-4">
+          <DatePickerWithRange data={data[0]} upDate={updateMin} />
+          <ResizeableGraph min={min} data={data[0]} highlighted={highlighted[0]} />
+        </div>
+      }
       </div>}
     </>
   )
