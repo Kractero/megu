@@ -20,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 import { Input } from "@/components/ui/input"
 import { Link } from "lucide-react"
 import { XMLParser } from 'fast-xml-parser';
@@ -80,7 +88,7 @@ export function CardForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      season: "All",
+      season: "3",
       cardName: "Testlandia",
     },
   })
@@ -102,6 +110,8 @@ export function CardForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     let nation = values.cardName
+    let season = values.season
+    let arr = []
     if (isNaN(Number(nation))) {
       try {
         let xmla = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?nation=${nation}&q=dbid`, "Kractero")
@@ -110,26 +120,43 @@ export function CardForm() {
         console.log(err)
       }
     }
-    const xml = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=1;limit=1000`, "Kractero")
-    const trades = xml.CARD.TRADES.TRADE.filter(trade => trade.PRICE)
-    const marketValueAtEachTrade = trades.map((trade, i, trades) => {
-      const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
-      const last15Trades = trades.slice(startIndex, i + 1);
+    let valuees = []
+    if (season === "All") {
+      for (let v = 1; v <= 3; v++) {
+        const xml = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${v};limit=1000`, "Kractero")
+        const trades = xml.CARD.TRADES.TRADE.filter(trade => trade.PRICE)
+        const marketValueAtEachTrade = trades.map((trade, i, trades) => {
+          const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
+          const last15Trades = trades.slice(startIndex, i + 1);
 
-      const marketValue = calculateMarketValue(last15Trades);
+          const marketValue = calculateMarketValue(last15Trades);
 
-      return {
-        "mv": marketValue,
-        "ts": last15Trades[0].TIMESTAMP
-      };
-    });
-    console.log(marketValueAtEachTrade)
-    setData(marketValueAtEachTrade.reverse())
-    setHighlighted([xml.CARD.MARKET_VALUE, trades[0].TIMESTAMP])
+          return {
+            "mv": marketValue,
+            "ts": last15Trades[0].TIMESTAMP
+          };
+        });
+        valuees.push(marketValueAtEachTrade.reverse())
+      }
+    } else {
+      const xml = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=${season};limit=1000`, "Kractero")
+      const trades = xml.CARD.TRADES.TRADE.filter(trade => trade.PRICE)
+      const marketValueAtEachTrade = trades.map((trade, i, trades) => {
+        const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
+        const last15Trades = trades.slice(startIndex, i + 1);
+
+        const marketValue = calculateMarketValue(last15Trades);
+
+        return {
+          "mv": marketValue,
+          "ts": last15Trades[0].TIMESTAMP
+        };
+      });
+      valuees = [marketValueAtEachTrade.reverse()]
+    }
+    setData(valuees)
+    // setHighlighted([xml.CARD.MARKET_VALUE, trades[0].TIMESTAMP])
   }
-  const customTooltipPosition = (coordinates, data, dataKey) => {
-    return { x: 0, y: 0 }; // Always position the tooltip at the top left
-  };
   return (
     <>
       <Form {...form}>
@@ -142,14 +169,14 @@ export function CardForm() {
               <Select onValueChange={field.onChange} >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Season" defaultValue={"All".toString()} />
+                    <SelectValue placeholder="Season" defaultValue={"3"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value={"All"}>All</SelectItem>
                   <SelectItem value={"1"}>1</SelectItem>
                   <SelectItem value={"2"}>2</SelectItem>
                   <SelectItem value={"3"}>3</SelectItem>
+                  <SelectItem value={"All"}>All</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -174,11 +201,16 @@ export function CardForm() {
       {data && <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80"}>
         <p>Current MV: {highlighted[0]}</p>
         <p>Last Trade: {highlighted[1]}</p>
-      <ResponsiveContainer minWidth={320} minHeight={320} width="100%" height={500}>
+      {data.length > 1 ?
+    <Carousel className="w-full">
+    <CarouselContent>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <CarouselItem key={index}>
+          <ResponsiveContainer minWidth={320} minHeight={320} width="100%" height={500}>
         <LineChart
           width={500}
           height={300}
-          data={data}
+          data={data[index]}
           margin={{
             top: 5,
             right: 30,
@@ -193,6 +225,31 @@ export function CardForm() {
   }} position={{x:0, y:0}} content={<CustomTooltip />} />
         </LineChart>
       </ResponsiveContainer>
+        </CarouselItem>
+      ))}
+    </CarouselContent>
+    <CarouselPrevious />
+    <CarouselNext />
+  </Carousel>
+      : <ResponsiveContainer minWidth={320} minHeight={320} width="100%" height={500}>
+        <LineChart
+          width={500}
+          height={300}
+          data={data[0]}
+          margin={{
+            top: 5,
+            right: 30,
+            left: 20,
+            bottom: 5,
+          }}
+        >
+          <Line type="monotone" dataKey="mv" stroke="#8884d8" />
+           <Tooltip   wrapperStyle={{
+    visibility: 'visible',
+    width: '100%',
+  }} position={{x:0, y:0}} content={<CustomTooltip />} />
+        </LineChart>
+      </ResponsiveContainer>}
       </div>}
     </>
   )
