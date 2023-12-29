@@ -205,32 +205,36 @@ export function CardForm() {
         </form>
       </Form>
       {data && data.length > 0 ? (
-        <div
-          className={
-            "min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8 flex flex-col items-center "
-          }
-        >
+        <>
           {data.length > 1 ? (
-            <ChartCarousel
-              min={min}
-              data={data}
-              upDate={updateMin}
-              highlighted={highlighted}
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-2 md:gap-4">
-              <h2 className="text-xl md:text-3xl text-center">
-                Season {highlighted[0][2]} - {highlighted[0][3]}
-              </h2>
-              <DatePickerWithRange data={data[0]} upDate={updateMin} />
-              <ResizeableGraph
+            <div
+              className={
+                "min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8 flex flex-col items-center"
+              }
+            >
+              <ChartCarousel
                 min={min}
-                data={data[0]}
-                highlighted={highlighted[0]}
+                data={data}
+                upDate={updateMin}
+                highlighted={highlighted}
               />
             </div>
+          ) : (
+            <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8 "}>
+              <div className="flex flex-col items-center gap-2 md:gap-4">
+                <h2 className="text-xl md:text-3xl text-center">
+                  Season {highlighted[0][2]} - {highlighted[0][3]}
+                </h2>
+                <DatePickerWithRange data={data[0]} upDate={updateMin} />
+                <ResizeableGraph
+                  min={min}
+                  data={data[0]}
+                  highlighted={highlighted[0]}
+                />
+              </div>
+            </div>
           )}
-        </div>
+        </>
       ) : (
         <p className="text-red-400">{error}</p>
       )}
