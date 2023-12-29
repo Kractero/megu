@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/form"
 
 import { Input } from "@/components/ui/input"
-import { Link } from "lucide-react"
-import { useState } from "react"
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from "react"
 import { sleep } from "@/lib/sleep"
 import { parseXML } from "@/lib/parseXML"
 import { SeasonSelector } from "./SeasonSelector"
@@ -24,6 +24,7 @@ import { ChartCarousel } from "./ChartCarousel"
 import { ResizeableGraph } from "./ResizeableGraph"
 import { Trade, TradeData } from "@/lib/types/trades_data"
 import { DatePickerWithRange } from "./DatePicker"
+import { pushHistory } from "@/lib/pushHistory"
 
 const formSchema = z.object({
   season: z.union( [
@@ -39,12 +40,16 @@ export function CardForm() {
   const [data, setData] = useState<Array<Array<MarketData>>>()
   const [highlighted, setHighlighted] = useState<any>([])
   const [min, setMin] = useState<Array<Date>>([])
+  const [error, setError] = useState("")
+  const params = useSearchParams()
+
   const updateMin = (d: Array<Date>) => setMin(d)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      season: "3",
-      cardName: "Testlandia",
+      season: params.get('season') as "All" | "1" | "2" | "3" | undefined || "3",
+      cardName: params.get('nation') || "Testlandia",
     },
   })
 
@@ -56,13 +61,14 @@ export function CardForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     let nation = values.cardName
     let season = values.season
+    pushHistory(`?nation=${nation}&season=${season}`)
     if (isNaN(Number(nation))) {
       try {
         let xmla = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?nation=${nation}&q=dbid`, "Kractero")
         nation = xmla.NATION.DBID
         await sleep(700)
       } catch (err) {
-        console.log(err)
+        setError("Nation does not exist.")
       }
     }
     let valuees: Array<Array<MarketData>> = []
@@ -84,8 +90,10 @@ export function CardForm() {
             };
           });
           marketValueAtEachTrade.push()
-          bases.push([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString()])
+          bases.push([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString(), v])
           valuees.push(marketValueAtEachTrade.reverse())
+        } else {
+          setError(`Nation does have a card for season ${season}.`)
         }
         await sleep(700)
       }
@@ -105,7 +113,9 @@ export function CardForm() {
           };
         });
         valuees = [marketValueAtEachTrade.reverse()]
-        bases.push([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString()])
+        bases.push([xml.CARD.MARKET_VALUE, new Date(trades[0].TIMESTAMP * 1000).toLocaleString(), season])
+      } else {
+        setError(`Nation does have a card for season ${season}.`)
       }
     }
     setHighlighted(bases)
@@ -122,7 +132,7 @@ export function CardForm() {
           render={({ field }) => (
             <FormItem className="my-4">
               <FormControl>
-                <Input placeholder="Testlandia" {...field} />
+                <Input placeholder={params.get('nation') || "Testlandia"} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,16 +141,17 @@ export function CardForm() {
         <Button type="submit">Submit</Button>
       </form>
     </Form>
-      {data && <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8"}>
+      {data && data.length > 0 ? <div className={"min-w-xs min-h-80 w-full max-w-7xl h-80 mt-8"}>
       {data.length > 1 ?
         <ChartCarousel min={min} data={data} upDate={updateMin} highlighted={highlighted} />
       :
         <div className="flex flex-col items-center gap-4">
+          <h2 className="text-3xl">Season {highlighted[0][2]}</h2>
           <DatePickerWithRange data={data[0]} upDate={updateMin} />
           <ResizeableGraph min={min} data={data[0]} highlighted={highlighted[0]} />
         </div>
       }
-      </div>}
+      </div> : <p className="text-red-400">{error}</p>}
     </>
   )
 

@@ -22,6 +22,7 @@ export function ChartCarousel({ data, highlighted, min, upDate }: Props) {
       <CarouselContent>
         {Array.from({ length: data.length }).map((_, index) => (
           <CarouselItem className="flex flex-col items-center gap-4" key={index}>
+            <h2 className="text-3xl">Season {highlighted[index][2]}</h2>
             <DatePickerWithRange data={data[index]} upDate={upDate} />
             <ResizeableGraph min={min} data={data[index]} highlighted={highlighted[index]} />
           </CarouselItem>

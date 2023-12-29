@@ -31,7 +31,7 @@ export function SeasonSelector({form}: Props) {
           <Select onValueChange={field.onChange}>
             <FormControl>
               <SelectTrigger>
-                <SelectValue placeholder="Season" defaultValue={"3"} />
+                <SelectValue placeholder={field.value} defaultValue={"3"} />
               </SelectTrigger>
             </FormControl>
             <SelectContent>
