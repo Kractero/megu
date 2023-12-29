@@ -8,10 +8,8 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form"
 
@@ -26,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Link } from "lucide-react"
 import { XMLParser } from 'fast-xml-parser';
 import { useState } from "react"
+import { LineChart, Line } from 'recharts';
 
 const formSchema = z.object({
   season: z.union( [
@@ -76,15 +75,20 @@ export async function parseXML(url: string, userAgent: string, password?: string
 }
 
 export function CardForm() {
-  const [data, setData] = useState<{marketValue: number, trades: Array<any>}>()
-
+  const [data, setData] = useState<any>()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       season: "All",
-      cardName: "",
+      cardName: "Testlandia",
     },
   })
+
+  function calculateMarketValue(trades) {
+    const sumPrices = trades.reduce((sum, trade) => sum + parseFloat(trade.PRICE), 0);
+    console.log(sumPrices)
+    return sumPrices / trades.length;
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     let nation = values.cardName
@@ -97,14 +101,25 @@ export function CardForm() {
       }
     }
     const xml = await parseXML(`https://www.nationstates.net/cgi-bin/api.cgi?q=card+trades;cardid=${nation};season=1;limit=1000`, "Kractero")
-    setData({
-      "marketValue": xml.CARD.MARKET_VALUE,
-      "trades": xml.CARD.TRADES.TRADE
-    })
+    const trades = xml.CARD.TRADES.TRADE.filter(trade => trade.PRICE)
+    const marketValueAtEachTrade = trades.map((trade, i, trades) => {
+      const startIndex = Math.max(0, i - 14); // Ensure the start index is not negative
+      const last15Trades = trades.slice(startIndex, i + 1);
+
+      const marketValue = calculateMarketValue(last15Trades);
+
+      return {
+        "mv": marketValue,
+        "ts": last15Trades[0].TIMESTAMP
+      };
+    });
+    console.log(marketValueAtEachTrade)
+    setData(marketValueAtEachTrade.reverse())
   }
 
   return (
-    <Form {...form}>
+    <>
+      <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-4">
       <FormField
           control={form.control}
@@ -134,7 +149,7 @@ export function CardForm() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input placeholder="shadcn" {...field} />
+                <Input placeholder="Testlandia" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -143,6 +158,10 @@ export function CardForm() {
         <Button type="submit">Submit</Button>
       </form>
     </Form>
+    <LineChart id="Values" width={400} height={400} data={data}>
+    <Line type="monotone" dataKey={"mv"} stroke="#8884d8" />
+  </LineChart>
+    </>
   )
 
 }
