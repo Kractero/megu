@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Megu
 
-## Getting Started
+A web application that allows users to track and visualize the historical market value of any card. Simple and minimal, you can view market value data, filter by seasons, filter dates, and explore trends over time.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Historical Market Value Data:** Retrieve and display historical market value data for a particular card in the NationStates Trading Card Game.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Graphical Visualization:** Visualize market value trends using interactive graphs for easy data interpretation.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Date Filtering:** Filter market value data by specific date ranges to focus on relevant periods.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Tech Stack
 
-## Learn More
+- **TypeScript:** A superset of JavaScript with static typing for improved code maintainability and error catching.
 
-To learn more about Next.js, take a look at the following resources:
+- **Next.js:** A React framework for building server-rendered and statically generated web applications. It simplifies development with features like server-side rendering and automatic code splitting.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **React:** A JavaScript library for building user interfaces, enabling the creation of reusable UI components and efficient state management.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- **Tailwind CSS:** A utility-first CSS framework for rapid development and maintaining a consistent design system.
 
-## Deploy on Vercel
+- [shadcn/ui:](https://ui.shadcn.com/) Beautifully designed components that you can copy and paste into your apps. Accessible. Customizable. Open Source.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Recharts:](https://recharts.org/en-US/) A React charting library using D3.js for creating interactive and visually appealing charts.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- **Fast XML Parser:** A fast XML parser library for JavaScript, used for efficient parsing of XML data.
+
+- **Zod:** A TypeScript-first schema declaration and validation library for defining and validating data schemas.
+
+![megumin](public/Explosion.jpg)

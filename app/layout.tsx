@@ -6,9 +6,9 @@ import Script from "next/script";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Megumin",
-  description: "Market Evaluation Graph Utility (in necessity)",
-  metadataBase: new URL("https://megu.vercel.app"),
+  title: "Megu",
+  description: "Market Evaluation Graph Utility",
+  metadataBase: new URL("https://meguuu.vercel.app"),
 };
 
 export default function RootLayout({
